@@ -1,0 +1,58 @@
+name: Build KDE Rounded Corners
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master, main ]
+  pull_request:
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: debian:sid
+      options: --user root
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            cmake \
+            g++ \
+            gettext \
+            extra-cmake-modules \
+            qt6-base-private-dev \
+            qt6-base-dev-tools \
+            libkf6configwidgets-dev \
+            libkf6kcmutils-dev \
+            kwin-dev \
+            libdrm-dev \
+            ninja-build
+
+      - name: Configure
+        run: |
+          cmake -B build -S . \
+            -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+
+      - name: Build
+        run: |
+          cmake --build build -j$(nproc)
+
+      - name: Install into staging
+        run: |
+          cmake --install build --prefix /tmp/install
+
+      - name: Upload compiled files
+        uses: actions/upload-artifact@v4
+        with:
+          name: KDE-Rounded-Corners
+          path: /tmp/install
+          compression-level: 0
